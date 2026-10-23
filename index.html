@@ -84,7 +84,7 @@
     --pink-dark: #ff6fa3;
     --pink-text: #3a0d1f;
   }
-  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); overscroll-behavior: none; }
   * { box-sizing: border-box; }
   body {
     margin: 0;
@@ -210,9 +210,13 @@
   /* てがき（かきとり） */
   .pad {
     position: relative;
-    width: 240px;
-    height: 240px;
+    width: min(280px, 100%);
+    aspect-ratio: 1;
     margin: 0 auto 10px;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
     border: 3px solid var(--accent);
     border-radius: 12px;
     background:
@@ -221,19 +225,19 @@
       var(--input-bg);
   }
   .pad canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
-  .pad .model {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 190px;
-    line-height: 1;
-    color: var(--model);
-    pointer-events: none;
-  }
-  .pad-tools { display: flex; gap: 10px; }
-  .pad-tools button { flex: 1; }
+  .pad .model { position: absolute; inset: 0; pointer-events: none; }
+  .pad .model svg { width: 100%; height: 100%; }
+  .pad .model path { fill: none; stroke: var(--model); stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; }
+  .pad .verdict { position: absolute; right: 6px; top: 2px; font-size: 3rem; line-height: 1; pointer-events: none; }
+  .fb-compare { display: flex; justify-content: center; gap: 10px; margin: 0 0 10px; }
+  .fb-compare figure { margin: 0; }
+  .fb-compare figcaption { font-size: .8rem; color: var(--muted); }
+  .fb-compare img, .fb-compare .stroke-box svg { width: 140px; height: 140px; border: 3px solid var(--border); border-radius: 14px; background: var(--input-bg); }
+  .fb-compare .stroke-box { margin: 0; }
+  .btn-override { background: transparent; color: var(--muted); font-size: .85rem; font-weight: 400; text-decoration: underline; padding: 6px; margin: 4px auto 0; display: block; }
+  .pad-tools { display: flex; gap: 8px; }
+  .pad-tools button { flex: 1; padding-left: 4px; padding-right: 4px; }
+  .pad-tools .btn-big { flex: 1.4; }
   .judge { display: flex; gap: 10px; }
   .judge button { flex: 1; }
   .btn-ok { background: var(--ok); color: #fff; }
@@ -404,7 +408,7 @@
     <button class="btn-sub hidden" id="btn-weak"></button>
     <button class="btn-big btn-mock" id="btn-mock">🏅 もぎテスト（ほんばんと おなじ 7もん）<small style="display:block; font-size:.8rem; opacity:.9;">80% いじょうで ごうかく！</small></button>
     <button class="btn-big btn-gacha hidden" id="btn-gacha-home"></button>
-    <label class="row"><input type="checkbox" id="chk-hand"> ✍️ かきとりは てがきで かく（じぶんで まるつけ）</label>
+    <label class="row"><input type="checkbox" id="chk-hand"> ✍️ かく もんだいは てがきで（じどうで まるつけ）</label>
     <label class="row"><input type="checkbox" id="chk-sound"> 🔔 ⭕❌の こえを だす</label>
     <button class="btn-sub" id="btn-score">🗺️ かんじマップ（せいせき）</button>
     <button class="btn-sub" id="btn-zukan">🎀 かんじカードずかん</button>
@@ -433,19 +437,12 @@
         <!-- てがき -->
         <div id="q-hand" class="hidden">
           <div class="pad" id="pad">
-            <div class="model kj hidden" id="pad-model"></div>
             <canvas id="pad-canvas" width="240" height="240"></canvas>
           </div>
           <div class="pad-tools" id="pad-tools">
+            <button class="btn-sub" id="btn-pad-undo">↩️ もどす</button>
             <button class="btn-sub" id="btn-pad-clear">🧽 けす</button>
-            <button class="btn-big" id="btn-pad-show">こたえあわせ</button>
-          </div>
-          <div id="pad-judge" class="hidden">
-            <p class="qtext" style="margin:6px 0 0;">あかい おてほんと かさねて みよう。かけたかな？</p>
-            <div class="judge">
-              <button class="btn-big btn-ok" id="btn-self-ok">⭕ かけた</button>
-              <button class="btn-big btn-ng" id="btn-self-ng">❌ ちがった</button>
-            </div>
+            <button class="btn-big" id="btn-pad-show">まるつけ</button>
           </div>
         </div>
       </div>
@@ -453,11 +450,16 @@
         <div class="feedback" id="fb-box">
           <div class="mark" id="fb-mark"></div>
           <div class="lbl" id="fb-label"></div>
+          <div class="fb-compare hidden" id="fb-compare">
+            <figure><img id="fb-mine" alt="きみが かいた じ"><figcaption>きみの じ</figcaption></figure>
+            <figure><div class="stroke-box" id="fb-model"></div><figcaption>おてほん</figcaption></figure>
+          </div>
           <div class="stroke-box hidden" id="fb-strokes"></div>
           <div class="ans-kanji kj" id="fb-kanji"></div>
           <div class="ans-line" id="fb-line"></div>
           <div class="ans-info" id="fb-info"></div>
           <div class="yours" id="fb-yours"></div>
+          <button class="btn-override hidden" id="btn-override">おうちの ひとへ：ただしく かけて いたら ⭕に する</button>
         </div>
         <button class="btn-sub" id="btn-replay">✍️ かきじゅんを もういちど みる</button>
         <button class="btn-big" id="btn-next">つぎへ ▶</button>
@@ -525,6 +527,7 @@
 </div>
 
 <script src="strokes.js"></script>
+<script src="judge.js"></script>
 <script>
 (function(){
   "use strict";
@@ -794,7 +797,8 @@
     pair:   {no: 6, label: "🔗 なかまの かんじ", pts: 2},
     kaki:   {no: 7, label: "✏️ かきとり", pts: 2}
   };
-  var TYPE_WEIGHT = {yomi: 3, kaki: 3, hitsu: 2, chigau: 1, kana: 1, ichiji: 1, pair: 1};
+  /* かく もんだい（かきとり・なかまの かんじ）を おおめに だす */
+  var TYPE_WEIGHT = {yomi: 2, kaki: 5, hitsu: 1, chigau: 1, kana: 1, ichiji: 1, pair: 2};
   /* もぎテスト：ほんばん（20・12・8・5・6・10・20）を みじかく した もの */
   var MOCK_PLAN = [["yomi", 8], ["hitsu", 5], ["chigau", 2], ["kana", 3], ["ichiji", 3], ["pair", 4], ["kaki", 8]];
   var MIN_QUESTIONS = 6;
@@ -855,11 +859,11 @@
   function wordKanji(w){ return w.split("").filter(isKanji); }
 
   /* ---- せってい・きろく ---- */
-  var soundOn = true, handOn = false;
+  var soundOn = true, handOn = true;
   var stats = {}, setBest = {}, tickets = [], owned = {};
   try {
     soundOn = localStorage.getItem("kk10_sound") !== "0";
-    handOn = localStorage.getItem("kk10_hand") === "1";
+    handOn = localStorage.getItem("kk10_hand") !== "0";
     var s0 = JSON.parse(localStorage.getItem("kk10_stats") || "{}");
     if (s0 && typeof s0 === "object") stats = s0;
     var sb0 = JSON.parse(localStorage.getItem("kk10_set_best") || "{}");
@@ -1157,8 +1161,8 @@
   }
   function askKanji(k){
     if (handOn) {
-      setupPad(k);
       $("q-hand").classList.remove("hidden");
+      setupPad(k);
     } else {
       renderChoices(kanjiChoices(k).map(function(c){ return {v: c, label: c, cls: "choice kj"}; }), "");
     }
@@ -1304,62 +1308,101 @@
     judgeSimple(a, a);
   });
 
-  /* ---- てがき パッド ---- */
-  var padCtx = null, padDrawing = false, padInk = false;
+  /* ---- てがき パッド（かいた せんは 0〜109 の ざひょうで おぼえて じどうで まるつけ） ---- */
+  var padCtx = null, padDrawing = false, padStrokes = [], padK = "", padSize = 240, padLocked = false;
   function setupPad(k){
     var cv = $("pad-canvas");
     var r = window.devicePixelRatio || 1;
-    cv.width = 240 * r; cv.height = 240 * r;
+    padSize = $("pad").clientWidth || 240;
+    cv.width = padSize * r; cv.height = padSize * r;
     padCtx = cv.getContext("2d");
     padCtx.scale(r, r);
+    padK = k;
+    padStrokes = [];
+    padLocked = false;
+    padDrawing = false;
+    Array.prototype.slice.call($("pad").querySelectorAll(".model, .verdict")).forEach(function(n){ n.remove(); });
+    $("pad-tools").classList.remove("hidden");
+    redrawPad();
+  }
+  function redrawPad(){
+    padCtx.clearRect(0, 0, padSize, padSize);
     padCtx.lineCap = "round";
     padCtx.lineJoin = "round";
-    padCtx.lineWidth = 9;
+    padCtx.lineWidth = padSize * 0.036;
     padCtx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--pen").trim() || "#23362a";
-    padInk = false;
-    $("pad-model").textContent = k;
-    $("pad-model").classList.add("hidden");
-    $("pad-tools").classList.remove("hidden");
-    $("pad-judge").classList.add("hidden");
-    $("btn-pad-show").disabled = true;
+    var sc = padSize / 109;
+    padStrokes.forEach(function(st){
+      padCtx.beginPath();
+      padCtx.moveTo(st[0][0] * sc, st[0][1] * sc);
+      if (st.length === 1) padCtx.lineTo(st[0][0] * sc + .1, st[0][1] * sc + .1);
+      for (var i = 1; i < st.length; i++) padCtx.lineTo(st[i][0] * sc, st[i][1] * sc);
+      padCtx.stroke();
+    });
+    var has = padStrokes.length > 0;
+    $("btn-pad-show").disabled = !has;
+    $("btn-pad-undo").disabled = !has;
+    $("btn-pad-clear").disabled = !has;
   }
   function padPoint(ev){
     var rc = $("pad-canvas").getBoundingClientRect();
-    return {x: (ev.clientX - rc.left) * 240 / rc.width, y: (ev.clientY - rc.top) * 240 / rc.height};
+    var x = (ev.clientX - rc.left) * 109 / rc.width, y = (ev.clientY - rc.top) * 109 / rc.height;
+    return [Math.max(0, Math.min(109, x)), Math.max(0, Math.min(109, y))];
   }
-  $("pad-canvas").addEventListener("pointerdown", function(ev){
-    if (!padCtx || !$("pad-judge").classList.contains("hidden")) return;
+  /* わくの なかで ゆびを うごかしても がめんが スクロールしない ように */
+  ["touchstart", "touchmove"].forEach(function(t){
+    $("pad").addEventListener(t, function(ev){ ev.preventDefault(); }, {passive: false});
+  });
+  $("pad").addEventListener("pointerdown", function(ev){
+    if (!padCtx || padLocked || ev.button) return;
     ev.preventDefault();
     padDrawing = true;
     try { this.setPointerCapture(ev.pointerId); } catch (e) {}
-    var p = padPoint(ev);
-    padCtx.beginPath();
-    padCtx.moveTo(p.x, p.y);
-    padCtx.lineTo(p.x + .1, p.y + .1);
-    padCtx.stroke();
+    padStrokes.push([padPoint(ev)]);
+    redrawPad();
   });
-  $("pad-canvas").addEventListener("pointermove", function(ev){
+  $("pad").addEventListener("pointermove", function(ev){
     if (!padDrawing) return;
-    var p = padPoint(ev);
-    padCtx.lineTo(p.x, p.y);
+    ev.preventDefault();
+    var st = padStrokes[padStrokes.length - 1], p = padPoint(ev), last = st[st.length - 1];
+    if (Math.hypot(p[0] - last[0], p[1] - last[1]) < 0.6) return;
+    st.push(p);
+    var sc = padSize / 109;
+    padCtx.beginPath();
+    padCtx.moveTo(last[0] * sc, last[1] * sc);
+    padCtx.lineTo(p[0] * sc, p[1] * sc);
     padCtx.stroke();
-    if (!padInk) { padInk = true; $("btn-pad-show").disabled = false; }
   });
   function padEnd(){ padDrawing = false; }
-  $("pad-canvas").addEventListener("pointerup", padEnd);
-  $("pad-canvas").addEventListener("pointercancel", padEnd);
-  $("btn-pad-clear").addEventListener("click", function(){
-    padCtx.clearRect(0, 0, 240, 240);
-    padInk = false;
-    $("btn-pad-show").disabled = true;
-  });
+  $("pad").addEventListener("pointerup", padEnd);
+  $("pad").addEventListener("pointercancel", padEnd);
+  $("btn-pad-undo").addEventListener("click", function(){ padStrokes.pop(); redrawPad(); });
+  $("btn-pad-clear").addEventListener("click", function(){ padStrokes = []; redrawPad(); });
+  function padMessage(r){
+    if (r.reason === "count") return "かくすうが ちがうよ（きみは " + r.count + "かく、ただしくは " + r.need + "かく）";
+    if (r.reason === "rival") return "「" + r.rival + "」に みえるよ";
+    if (r.reason === "shape") return "かたちが ちがう みたい";
+    if (r.note === "order") return "かたちは OK！ でも かきじゅんに ちゅうい" + (r.at ? "（" + r.at + "かくめ）" : "");
+    if (r.note === "direction") return "かたちは OK！ " + r.at + "かくめの かく むきに ちゅうい";
+    return "";
+  }
   $("btn-pad-show").addEventListener("click", function(){
-    $("pad-model").classList.remove("hidden");
+    if (!padStrokes.length || padLocked) return;
+    padLocked = true;
+    var r = window.KanjiJudge ? window.KanjiJudge.judge(padK, padStrokes, ALL_KANJI) : {ok: false, reason: "shape"};
+    var mine = $("pad-canvas").toDataURL();
+    var model = el("div", "model");
+    model.appendChild(strokeSvg(padK, 0, false));
+    $("pad").appendChild(model);
+    $("pad").appendChild(el("div", "verdict", r.ok ? "⭕" : "❌"));
     $("pad-tools").classList.add("hidden");
-    $("pad-judge").classList.remove("hidden");
+    /* おてほんと かさねた ところを すこし みせてから こたえあわせへ */
+    var at = pos;
+    setTimeout(function(){
+      if (at !== pos || $("screen-quiz").classList.contains("hidden")) return; /* とちゅうで やめた とき */
+      finishAnswer(r.ok, r.ok ? 1 : 0, "", {mine: mine, msg: padMessage(r)});
+    }, 900);
   });
-  $("btn-self-ok").addEventListener("click", function(){ finishAnswer(true, 1, ""); });
-  $("btn-self-ng").addEventListener("click", function(){ finishAnswer(false, 0, ""); });
 
   /* ---- まるつけ ---- */
   function correctOf(q){
@@ -1373,7 +1416,8 @@
     var ok = ans === correctOf(queue[pos]);
     finishAnswer(ok, ok ? 1 : 0, shown);
   }
-  function finishAnswer(ok, part, shown){
+  var lastStreak = null; /* じどう まるつけを ⭕に なおす ときの ための れんぞくせいかい */
+  function finishAnswer(ok, part, shown, hand){
     if (answered) return;
     answered = true;
     var q = queue[pos];
@@ -1383,27 +1427,46 @@
     var sec = secPts[q.t] = secPts[q.t] || {got: 0, max: 0};
     sec.got += got; sec.max += pts;
     if (ok) okCount++; else misses.push(q);
+    lastStreak = q.ks.map(function(k){ return recOf(k).st; });
     q.ks.forEach(function(k){
       var r = recOf(k);
       if (ok) { r.ok++; r.st++; } else { r.ng++; r.st = 0; }
     });
     saveStats();
     playSound(ok);
-    showFeedback(q, ok, shown);
+    showFeedback(q, ok, shown, hand);
   }
-  function showFeedback(q, ok, shown){
+  $("btn-override").addEventListener("click", function(){
+    var q = queue[pos], pts = TYPES[q.t].pts;
+    gotPts += pts; secPts[q.t].got += pts; okCount++;
+    misses.pop();
+    q.ks.forEach(function(k, i){
+      var r = recOf(k);
+      r.ng--; r.ok++; r.st = lastStreak[i] + 1;
+    });
+    saveStats();
+    playSound(true);
+    $("btn-override").classList.add("hidden");
+    $("fb-box").className = "feedback ok";
+    $("fb-mark").textContent = "⭕";
+    $("fb-label").textContent = "⭕に なおしたよ";
+  });
+  function showFeedback(q, ok, shown, hand){
     $("quiz-ask").classList.add("hidden");
     $("quiz-fb").classList.remove("hidden");
     $("fb-box").className = "feedback " + (ok ? "ok" : "ng");
     $("fb-mark").textContent = ok ? "⭕🎉" : "❌";
     $("fb-label").textContent = ok ? "せいかい！" : "おしい！ こたえは…";
-    var fs = $("fb-strokes");
     var showStroke = q.t === "hitsu" || q.t === "kaki" || q.t === "pair";
-    fs.classList.toggle("hidden", !showStroke);
+    /* てがきの ときは きみの じと おてほんを ならべる */
+    $("fb-compare").classList.toggle("hidden", !hand);
+    $("fb-strokes").classList.toggle("hidden", !showStroke || !!hand);
+    if (hand) $("fb-mine").src = hand.mine;
     $("btn-replay").classList.toggle("hidden", !showStroke);
+    $("btn-override").classList.toggle("hidden", !hand || ok);
     $("fb-kanji").classList.toggle("hidden", showStroke);
     $("fb-kanji").textContent = q.k;
-    if (showStroke) animateStrokes(fs, q.k, q.t === "hitsu" ? q.stroke : 0);
+    if (showStroke) replayStrokes();
     var line = "", info = "";
     if (q.t === "yomi" || q.t === "kaki") {
       line = plainSentence(q.toks);
@@ -1424,14 +1487,16 @@
     }
     $("fb-line").textContent = line;
     $("fb-info").textContent = info;
-    $("fb-yours").textContent = (ok || !shown) ? "" : "きみの こたえ： " + shown;
+    $("fb-yours").textContent = hand ? hand.msg : (ok || !shown) ? "" : "きみの こたえ： " + shown;
     $("quiz-bar").style.width = ((pos + 1) / queue.length * 100) + "%";
     $("btn-next").focus();
   }
-  $("btn-replay").addEventListener("click", function(){
+  function replayStrokes(){
     var q = queue[pos];
-    animateStrokes($("fb-strokes"), q.k, q.t === "hitsu" ? q.stroke : 0);
-  });
+    var box = $("fb-compare").classList.contains("hidden") ? $("fb-strokes") : $("fb-model");
+    animateStrokes(box, q.k, q.t === "hitsu" ? q.stroke : 0);
+  }
+  $("btn-replay").addEventListener("click", replayStrokes);
   $("btn-next").addEventListener("click", function(){
     pos++;
     if (pos < queue.length) { ask(); } else { finish(); }
